@@ -99,7 +99,8 @@ parentTab.addEventListener('click', event => {
     function showModal() {
         modalContent.classList.add('show');
         modalContent.classList.remove('hide');
-        document.body.style.overflow = 'hidden'
+        document.body.style.overflow = 'hidden';
+        clearInterval(modalTimerId);
     }
     
     function closeModal() {
@@ -126,4 +127,15 @@ parentTab.addEventListener('click', event => {
             closeModal();
         }
     });
+
+    const modalTimerId = setTimeout(showModal, 10000);
+
+    function showModalByScroll() {
+        if (window.pageYOffset + document.documentElement.clientHeight >= document.documentElement.scrollHeight -1) {
+            showModal();
+            window.removeEventListener('scroll', showModalByScroll);
+        }
+    }
+
+    window.addEventListener('scroll', showModalByScroll);
 });
