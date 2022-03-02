@@ -93,7 +93,6 @@ parentTab.addEventListener('click', event => {
     //modal
 
     const dataModal = document.querySelectorAll('[data-modal]'),
-          dataClose = document.querySelector('[data-close]'),
           modalContent = document.querySelector('.modal');
     
     function showModal() {
@@ -113,11 +112,9 @@ parentTab.addEventListener('click', event => {
         btn.addEventListener('click', showModal);
     });
 
-    
-    dataClose.addEventListener('click', closeModal);
 
     modalContent.addEventListener('click', (e) => {
-        if (e.target === modalContent) {
+        if (e.target === modalContent || e.target.getAttribute('data-close') == '') {
             closeModal();
         }
     });
@@ -128,7 +125,7 @@ parentTab.addEventListener('click', event => {
         }
     });
 
-    //const modalTimerId = setTimeout(showModal, 10000);
+    const modalTimerId = setTimeout(showModal, 50000);
 
     function showModalByScroll() {
         if (window.pageYOffset + document.documentElement.clientHeight >= document.documentElement.scrollHeight -1) {
@@ -140,12 +137,13 @@ parentTab.addEventListener('click', event => {
     window.addEventListener('scroll', showModalByScroll);
 
     class MenuCard {
-        constructor (src, alt, title, descr, price, parentSelecter) {
+        constructor (src, alt, title, descr, price, parentSelecter, ...classes) {
             this.src = src;
             this.alt = alt;
             this.title = title;
             this.descr = descr;
             this.price = price;
+            this.classes = classes;
             this.parent = document.querySelector(parentSelecter);
             this.transfer = 27;
             this.changToUAN();
@@ -157,8 +155,11 @@ parentTab.addEventListener('click', event => {
 
         render() {
             const element = document.createElement('div');
+            if (this.classes.length === 0) {
+                element.classList.add('menu__item');
+            }
+            this.classes.forEach(className => element.classList.add(className));
             element.innerHTML = `
-                <div class="menu__item">
                     <img src=${this.src} alt=${this.alt}>
                     <h3 class="menu__item-subtitle">${this.title}</h3>
                     <div class="menu__item-descr">${this.descr}</div>
@@ -166,7 +167,6 @@ parentTab.addEventListener('click', event => {
                     <div class="menu__item-price">
                         <div class="menu__item-cost">Цена:</div>
                         <div class="menu__item-total"><span>${this.price}</span> грн/день</div>
-                </div>
             `;
             this.parent.append(element);
         }
@@ -178,7 +178,9 @@ parentTab.addEventListener('click', event => {
         'Меню "Фитнес"',
         'Меню "Фитнес" - это новый подход к приготовлению блюд: больше свежих овощей и фруктов. Продукт активных и здоровых людей. Это абсолютно новый продукт с оптимальной ценой и высоким качеством!',
         9,
-        '.menu .container' 
+        '.menu .container',
+        'menu__item'
+
     ).render();
 
     new MenuCard(
@@ -187,7 +189,8 @@ parentTab.addEventListener('click', event => {
         'Меню “Премиум”',
         'В меню “Премиум” мы используем не только красивый дизайн упаковки, но и качественное исполнение блюд. Красная рыба, морепродукты, фрукты - ресторанное меню без похода в ресторан!',
         14,
-        '.menu .container' 
+        '.menu .container',
+        'menu__item'
     ).render();
 
     new MenuCard(
@@ -196,8 +199,88 @@ parentTab.addEventListener('click', event => {
         'Меню "Постное"',
         'Меню “Постное” - это тщательный подбор ингредиентов: полное отсутствие продуктов животного происхождения, молоко из миндаля, овса, кокоса или гречки, правильное количество белков за счет тофу и импортных вегетарианских стейков.',
         21,
-        '.menu .container' 
+        '.menu .container',
+        'menu__item'
     ).render();
 
+    //формс 
+    const forms = document.querySelectorAll('form');
 
-});
+    const message = {
+        loading: 'img/form/spinner.svg',
+        success: 'спасибо мы свами свяжимся',
+        failure: 'Что-то пошло не так!'
+    }
+
+    forms.forEach(item => {
+        postData(item);
+    });
+
+
+    function postData(form) {
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const statusMessage = document.createElement('img');
+            statusMessage.src = message.loading;
+            statusMessage.style.cssText = `
+                display: block;
+                margim: 0 auto;
+            `
+            form.insertAdjacentElement('afterend', statusMessage);
+
+
+          
+            const formData = new FormData(form);
+
+            const object = {};
+            formData.forEach(function(value, key) {
+                object[key] = value;
+            });
+
+
+            fetch('server.php', {
+                method: 'POST',
+                headers: {
+                    'Content-type': 'application/json'
+                },
+                body: JSON.stringify(object)
+            }).then(data => data.text())
+            .then(data => {
+                console.log(data);
+                showThanksModal(message.success);
+                form.reset();
+                statusMessage.remove();
+            }).catch(() => {
+                showThanksModal(message.failure);
+            }).finally(() => {
+                form.reset();
+            });
+        });
+    }
+
+    function showThanksModal(message) {
+        const prevModalDialog = document.querySelector('.modal__dialog');
+
+        prevModalDialog.classList.add('hide');
+        showModal();
+
+        const thanksModal = document.createElement('div');
+        thanksModal.classList.add('.modal__dialog');
+        thanksModal.innerHTML = `
+        <div class="modal__content">
+            <div data-close class="modal__close">&times;</div>
+            <div class="modal__title">${message}</div>
+        </div>
+        `
+
+        document.querySelector('.modal').append(thanksModal);
+        setTimeout( ()=>{
+            thanksModal.remove();
+            prevModalDialog.classList.add('show');
+            prevModalDialog.classList.add('hide');
+            closeModal();
+        }, 4000);
+    }
+
+}); 
