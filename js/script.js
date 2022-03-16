@@ -6,7 +6,7 @@ const   contentTab = document.querySelectorAll('.tabcontent'),
 
 function hideTabContent() {
     contentTab.forEach( item => {
-        item.classList.add('hide');
+        item.classList.add('hide'); 
         item.classList.remove('show');
     });
 
@@ -172,37 +172,56 @@ parentTab.addEventListener('click', event => {
         }
     }
 
-    new MenuCard(
-        "img/tabs/vegy.jpg",
-        "vegy",
-        'Меню "Фитнес"',
-        'Меню "Фитнес" - это новый подход к приготовлению блюд: больше свежих овощей и фруктов. Продукт активных и здоровых людей. Это абсолютно новый продукт с оптимальной ценой и высоким качеством!',
-        9,
-        '.menu .container',
-        'menu__item'
+    const getResourse = async (url, data) => {
+        const res = await fetch(url);
 
-    ).render();
+        if (!res.ok) {
+           throw new Error(`Could not fetch ${url}, status: ${res.status}`);
+        }
 
-    new MenuCard(
-        "img/tabs/elite.jpg",
-        "elite",
-        'Меню “Премиум”',
-        'В меню “Премиум” мы используем не только красивый дизайн упаковки, но и качественное исполнение блюд. Красная рыба, морепродукты, фрукты - ресторанное меню без похода в ресторан!',
-        14,
-        '.menu .container',
-        'menu__item'
-    ).render();
+        return await res.json();
+    }
 
-    new MenuCard(
-        "img/tabs/post.jpg",
-        "post",
-        'Меню "Постное"',
-        'Меню “Постное” - это тщательный подбор ингредиентов: полное отсутствие продуктов животного происхождения, молоко из миндаля, овса, кокоса или гречки, правильное количество белков за счет тофу и импортных вегетарианских стейков.',
-        21,
-        '.menu .container',
-        'menu__item'
-    ).render();
+    /* getResourse('http://localhost:3000/menu')
+        .then( data => {
+            data.forEach( ({img, altimg, title, descr, price}) => {
+                new MenuCard(img, altimg, title, descr, price, '.menu .container').render();
+            });
+        }); */
+  
+    axios.get('http://localhost:3000/menu')
+        .then (data => {
+            data.forEach(({}) => {
+                new MenuCard(img, altimg, title, descr, price, '.menu .containet').render();
+            });
+        });
 
+   /*  getResourse('http://localhost:3000/menu')
+        .then( data => createCard(data));
+
+        function createCard(data) {
+            data.forEach(({img, altimg, title, descr, price}) => {
+                const element = document.createElement('div');
+
+                element.classList.add('menu__item');
+
+                element.innerHTML = 
+                `
+                <img src=${img} alt=${altimg}>
+                    <h3 class="menu__item-subtitle">${title}</h3>
+                    <div class="menu__item-descr">${descr}</div>
+                    <div class="menu__item-divider"></div>
+                    <div class="menu__item-price">
+                        <div class="menu__item-cost">Цена:</div>
+                        <div class="menu__item-total"><span>${price}</span> грн/день</div>
+                
+                `;
+
+                document.querySelector('.menu .container').append(element);
+            });
+        }
+ */
+    
     //формс 
     const forms = document.querySelectorAll('form');
 
@@ -213,11 +232,22 @@ parentTab.addEventListener('click', event => {
     }
 
     forms.forEach(item => {
-        postData(item);
+        bindPostData(item);
     });
 
+    const postData = async (url, data) => {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-type': 'application/json'
+            },
+            body: data
+        }); 
 
-    function postData(form) {
+        return await res.json();
+    }
+
+    function bindPostData(form) {
         form.addEventListener('submit', (e) => {
             e.preventDefault();
 
@@ -233,23 +263,13 @@ parentTab.addEventListener('click', event => {
           
             const formData = new FormData(form);
 
-            const object = {};
-            formData.forEach(function(value, key) {
-                object[key] = value;
-            });
+            const json = JSON.stringify(Object.fromEntries(formData.entries()));
+            
 
-
-            fetch('server.php', {
-                method: 'POST',
-                headers: {
-                    'Content-type': 'application/json'
-                },
-                body: JSON.stringify(object)
-            }).then(data => data.text())
+            postData('http://localhost:3000/menu', json)
             .then(data => {
                 console.log(data);
                 showThanksModal(message.success);
-                form.reset();
                 statusMessage.remove();
             }).catch(() => {
                 showThanksModal(message.failure);
@@ -282,5 +302,165 @@ parentTab.addEventListener('click', event => {
             closeModal();
         }, 4000);
     }
+
+    fetch('http://localhost:3000/menu')
+        .then(data => data.json())
+        .then(res => console.log(res));
+// слайдер номер №1
+
+
+    const current = document.querySelector('#current'),
+          total = document.querySelector('#total'),
+          sliderPrev = document.querySelector('.offer__slider-prev'),
+          sliderNext = document.querySelector('.offer__slider-next'),
+          offerSlide = document.querySelectorAll('.offer__slide'),
+          slidesWapper = document.querySelector('.offer__slider-wrapper'),
+          slidesInner = document.querySelector('.offer__slide-inner'),
+          slider = document.querySelector('.offer__slider'),
+          width = window.getComputedStyle(slidesWapper).width;
+    let indexSlide = 1,
+        offset = 0;  
+
+
+    slider.style.position = 'relative';
+
+    const indicators = document.createElement('ol'),
+          dots = [];
+    indicators.classList.add('carousel-indicators')
+    indicators.style.cssText = 
+    `
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 15;
+    display: flex;
+    justify-content: center;
+    margin-right: 15%;
+    margin-left: 15%;
+    list-style: none;
+    `;
+ 
+    slider.append(indicators);
+
+    for( let i = 0; i < offerSlide.length; i ++) {
+        const dot = document.createElement('li');
+        dot.setAttribute('data-slide-to', i + 1);
+        dot.style.cssText = 
+        `
+        box-sizing: content-box;
+        flex: 0 1 auto;
+        width: 30px;
+        height: 6px;
+        margin-right: 3px;
+        margin-left: 3px;
+        cursor: pointer;
+        background-color: #fff;
+        background-clip: padding-box;
+        border-top: 10px solid transparent;
+        border-bottom: 10px solid transparent;
+        opacity: .5;
+        transition: opacity .6s ease;
+        `;
+        if (i == 0) {
+            dot.style.opacity = 1;
+        }
+        indicators.append(dot);
+        dots.push(dot);
+        
+    }
+ 
+
+    slidesInner.style.width = 100 * offerSlide.length + '%';
+    slidesInner.style.display = 'flex';
+    slidesInner.style.transition = 'all 1s';
+
+    slidesWapper.style.overflow = 'hidden';
+
+    offerSlide.forEach(slide => {
+        slide.style.width = width;
+    });
+
+
+    function changeIndicator() {
+        dots.forEach(dot => dot.style.opacity = .5)
+        dots[indexSlide - 1].style.opacity = 1;
+    }
+
+    sliderNext.addEventListener('click', () =>{
+        if (offset == +width.slice(0, width.length - 2) * (offerSlide.length - 1)) {
+            offset = 0;
+            /* document.querySelector(`[data-slide-to = "${offerSlide.length}"]`).style.opacity = 1; */
+        } else {
+            offset += +width.slice(0, width.length - 2);
+        }
+        slidesInner.style.transform = `translateX(-${offset}px)`;
+        plusSlide(1);
+        changeIndicator();
+    });
+    
+    
+    sliderPrev.addEventListener('click', () =>{
+        if (offset == 0) {
+            offset = +width.slice(0, width.length - 2) * (offerSlide.length - 1);
+        } else {
+            offset -= +width.slice(0, width.length - 2);
+        }
+        slidesInner.style.transform = `translateX(-${offset}px)`;
+        plusSlide(-1);
+        changeIndicator();
+    });
+
+    showSlide(indexSlide);
+
+    if (offerSlide.length < 10) {
+        total.innerHTML = `0${offerSlide.length}`;
+    } else {
+        total.innerHTML = `${offerSlide.length}`;
+    }
+
+    function showSlide(n) {
+        for (i = 1; i <= offerSlide.length; i++) {
+        }
+
+        if (n > offerSlide.length) {
+            indexSlide = 1;
+        }
+
+        if(n < 1) {
+            indexSlide = offerSlide.length;
+        }
+        /* offerSlide.forEach(item => item.style.display = 'none');
+
+        offerSlide[indexSlide - 1].style.display = 'block'; */
+
+        if (indexSlide < 10) {
+            current.innerHTML = `0${indexSlide}`;
+        } else {
+            current.innerHTML = `${indexSlide}`;
+        }
+        
+
+    }
+
+    function plusSlide(n) {
+        showSlide(indexSlide += n);
+    }
+    
+    dots.forEach(dot => {
+        dot.addEventListener('click', (e) => {
+        indexSlide = dots.indexOf(e.target) + 1;
+            dots.forEach(dots => dots.style.opacity = .5)
+            e.target.style.opacity = 1;
+            if (indexSlide < 10) {
+                current.innerHTML = `0${dots.indexOf(e.target) + 1}`;
+            } else {
+                current.innerHTML = `${dots.indexOf(e.target) + 1}`;
+            }
+            offset = +width.slice(0, width.length - 2) * dots.indexOf(e.target);
+            slidesInner.style.transform = `translateX(-${offset}px)`;
+            
+        });
+    });
 
 }); 
